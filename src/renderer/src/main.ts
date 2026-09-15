@@ -4,6 +4,8 @@ import { isPlottable, type ColumnId, type SeriesColumns, type TableId, type Tabl
 import { TableView } from './grid/TableView'
 import { formatCount, formatInt } from './plot/format'
 import { PlotView, type PlotMode, type RenderStats, type Tool } from './plot/PlotView'
+import { AboutDialog, UpdateController } from './ui/about'
+import { ThemeController, bindThemeMenu } from './ui/theme'
 
 // Validated categorical palette (fixed order; a color follows its column, never its rank).
 const PALETTE_LIGHT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948']
@@ -29,6 +31,7 @@ const els = {
   datasetSelect: $<HTMLSelectElement>('dataset-select'),
   sheetSelect: $<HTMLSelectElement>('sheet-select'),
   meta: $('dataset-meta'),
+  title: $('tb-title'),
   status: $('status'),
   colFilter: $<HTMLInputElement>('col-filter'),
   colList: $('col-list'),
@@ -162,6 +165,9 @@ class App {
       })
     )
     els.meta.textContent = meta ? `${formatInt(meta.rowCount)} 行 · ${meta.columns.length} 列 · SQL 表名 ${meta.sqlName}` : ''
+    const title = meta ? (meta.sheet ? `${meta.title} — ${meta.sheet}` : meta.title) : 'Vernier'
+    els.title.textContent = title
+    document.title = meta ? `${title} · Vernier` : 'Vernier'
   }
 
   // ---------------------------------------------------------------- selection
@@ -550,14 +556,30 @@ class App {
     els.export.addEventListener('click', () => void this.exportPng())
 
     window.addEventListener('keydown', (e) => {
-      const t = e.target as HTMLElement
-      if (t.closest('input, textarea, select, .ag-root-wrapper')) return
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o' && !window.vernier) {
-        e.preventDefault()
-        pick()
-        return
+      // On macOS the application menu owns these accelerators; Windows/Linux have no menu bar.
+      const menuOwnsShortcuts = window.vernier?.platform === 'darwin'
+      const mod = e.metaKey || e.ctrlKey
+      if (mod && !menuOwnsShortcuts && !e.altKey) {
+        const k = e.key.toLowerCase()
+        if (k === 'o' && !e.shiftKey) {
+          e.preventDefault()
+          pick()
+          return
+        }
+        if (k === 'e' && e.shiftKey) {
+          e.preventDefault()
+          void this.exportPng()
+          return
+        }
+        if (k === '0' && !e.shiftKey) {
+          e.preventDefault()
+          this.plots.forEach((p) => p.reset())
+          return
+        }
       }
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement
+      if (t.closest('input, textarea, select, dialog, .menu, .ag-root-wrapper')) return
+      if (mod || e.altKey) return
       if (e.key === 'z' || e.key === 'Z') return this.setTool('zoom')
       if (e.key === 'e' || e.key === 'E') return this.setTool('explore')
       const view = this.activePlot
@@ -657,24 +679,40 @@ function errText(err: unknown): string {
   return s.length > 300 ? `${s.slice(0, 300)}…` : s
 }
 
-function applyTheme(): void {
-  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  document.documentElement.dataset['theme'] = dark ? 'dark' : 'light'
-}
-
 async function boot(): Promise<void> {
-  applyTheme()
+  const root = document.documentElement
+  root.dataset['platform'] = window.vernier?.platform ?? 'web'
+  window.vernier?.onFullscreen((fs) => (root.dataset['fullscreen'] = String(fs)))
+
+  let app: App | null = null
+  const theme = new ThemeController(() => app?.onThemeChange())
+  await theme.apply(false)
+  bindThemeMenu(theme, $<HTMLButtonElement>('btn-theme'), $('theme-menu'))
+
+  let updates: UpdateController | null = null
+  const about = new AboutDialog($<HTMLDialogElement>('about'), () => void updates?.act())
+  updates = new UpdateController(about, $<HTMLButtonElement>('btn-update'))
+  const versionBtn = $<HTMLButtonElement>('sb-version')
+  versionBtn.textContent = `v${__APP_VERSION__}`
+  versionBtn.addEventListener('click', () => about.open())
+  $('btn-about').addEventListener('click', () => about.open())
+  window.vernier?.appInfo().then((info) => about.setInfo(info))
+  window.vernier?.onMenu((cmd) => {
+    if (cmd === 'about') about.open()
+    else if (cmd === 'check-update') {
+      about.open()
+      void updates!.check()
+    }
+  })
+
   els.status.textContent = '正在启动数据引擎…'
   const t0 = performance.now()
   const core = await DataCore.create()
-  const app = new App(core)
+  app = new App(core)
   els.status.textContent = `数据引擎就绪 · ${Math.round(performance.now() - t0)} ms`
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    applyTheme()
-    app.onThemeChange()
-  })
-  Object.assign(window, { __vernier: { ready: true, app, core } })
+  Object.assign(window, { __vernier: { ready: true, app, core, theme, updates } })
   window.vernier?.ready()
+  void updates.start()
 }
 
 boot().catch((err) => {

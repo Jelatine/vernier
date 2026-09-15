@@ -1,26 +1,50 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="./src/assets/logo-mark.svg" />
     <title>Vernier</title>
   </head>
   <body>
     <div id="app">
-      <header class="topbar">
-        <div class="brand" aria-label="Vernier">
-          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-            <path d="M2 15 L6 9 L9 11 L16 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="9" cy="11" r="2.2" fill="var(--accent)" />
-          </svg>
-          Vernier
+      <header class="titlebar" id="titlebar">
+        <div class="tb-section tb-left">
+          <div class="tb-brand">
+            <img class="tb-logo" src="./src/assets/logo-mark.svg" width="18" height="18" alt="" />
+            <span class="tb-name">Vernier</span>
+          </div>
+          <span class="tb-divider" aria-hidden="true"></span>
+          <button id="btn-open" class="tb-btn" title="打开 CSV / XLSX / Parquet（⌘O / Ctrl+O）">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">
+              <path d="M1.75 4.25a1.5 1.5 0 0 1 1.5-1.5h2.6l1.5 1.5h5.4a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-9.5a1.5 1.5 0 0 1-1.5-1.5z" />
+            </svg>
+            <span>打开</span>
+          </button>
+          <select id="dataset-select" class="tb-select" title="数据集" hidden></select>
+          <select id="sheet-select" class="tb-select" title="工作表" hidden></select>
         </div>
-        <button id="btn-open" class="btn primary" title="打开 CSV / XLSX / Parquet（⌘O）">打开文件…</button>
-        <select id="dataset-select" class="select" title="数据集" hidden></select>
-        <select id="sheet-select" class="select" title="工作表" hidden></select>
-        <div id="dataset-meta" class="meta"></div>
-        <div class="spacer"></div>
-        <div id="status" class="status" role="status"></div>
+
+        <div class="tb-title" id="tb-title">Vernier</div>
+
+        <div class="tb-section tb-right">
+          <button id="btn-update" class="tb-update" hidden></button>
+          <div class="tb-menu-wrap">
+            <button id="btn-theme" class="tb-icon" title="外观" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu"></button>
+            <div id="theme-menu" class="menu" role="menu" aria-label="外观" hidden>
+              <button class="menu-item" role="menuitemradio" data-theme-choice="light"><span class="mi-check"></span><span class="mi-icon"></span>浅色</button>
+              <button class="menu-item" role="menuitemradio" data-theme-choice="dark"><span class="mi-check"></span><span class="mi-icon"></span>深色</button>
+              <button class="menu-item" role="menuitemradio" data-theme-choice="system"><span class="mi-check"></span><span class="mi-icon"></span>跟随系统</button>
+            </div>
+          </div>
+          <button id="btn-about" class="tb-icon" title="关于 Vernier" aria-label="关于 Vernier">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.25" />
+              <path d="M8 7.25v3.75" />
+              <circle cx="8" cy="4.9" r="0.4" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <div class="body">
@@ -51,6 +75,7 @@
             <div id="grid" class="grid"></div>
             <div id="empty" class="empty">
               <div class="empty-card">
+                <img src="./src/assets/logo.svg" width="72" height="72" alt="" />
                 <div class="empty-title">拖入 CSV / XLSX / Parquet 文件</div>
                 <div class="empty-sub">或按 <kbd>⌘O</kbd> 打开。数据进入列式引擎（DuckDB-WASM），表格只按可见行区间取数。</div>
                 <button id="btn-open-empty" class="btn primary">打开文件…</button>
@@ -90,6 +115,46 @@
           </section>
         </main>
       </div>
+
+      <footer class="statusbar">
+        <div id="dataset-meta" class="meta"></div>
+        <div class="spacer"></div>
+        <div id="status" class="status" role="status"></div>
+        <button id="sb-version" class="sb-version" title="关于 / 检查更新"></button>
+      </footer>
+
+      <dialog id="about" class="about" aria-labelledby="about-name">
+        <form method="dialog"><button class="about-close" aria-label="关闭">×</button></form>
+        <div class="about-head">
+          <img src="./src/assets/logo.svg" width="64" height="64" alt="" />
+          <div>
+            <div id="about-name" class="about-name">Vernier</div>
+            <div class="about-tagline">表格预览 · MATLAB 式交互绘图</div>
+          </div>
+        </div>
+        <dl class="about-grid">
+          <dt>版本</dt>
+          <dd id="about-version"></dd>
+          <dt>作者</dt>
+          <dd><a id="about-author" href="https://github.com/Jelatine" data-external>Jelatine</a></dd>
+          <dt>仓库</dt>
+          <dd><a id="about-repo" href="https://github.com/Jelatine/vernier" data-external>github.com/Jelatine/vernier</a></dd>
+          <dt>运行环境</dt>
+          <dd id="about-runtime" class="muted"></dd>
+        </dl>
+        <section class="about-update" aria-live="polite">
+          <div class="update-row">
+            <div id="update-text" class="update-text"></div>
+            <button id="update-action" class="btn primary"></button>
+          </div>
+          <div id="update-progress" class="progress" hidden><div></div></div>
+          <details id="update-notes" hidden>
+            <summary>更新说明</summary>
+            <pre></pre>
+          </details>
+          <label class="check"><input type="checkbox" id="update-auto" /> 启动时自动检查更新</label>
+        </section>
+      </dialog>
 
       <div id="dropzone" class="dropzone" hidden><div>松开以导入</div></div>
       <input type="file" id="file-input" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.parquet" hidden />

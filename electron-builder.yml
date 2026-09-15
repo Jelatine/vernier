@@ -1,27 +1,46 @@
 appId: app.vernier.desktop
 productName: Vernier
+copyright: Copyright © 2026 Jelatine
 directories:
   buildResources: build
   output: dist
 files:
   - out/**
+  - resources/**
   - package.json
   - '!**/*.map'
 asarUnpack: []
-publish: null
+# Only used to write app-update.yml / latest*.yml for electron-updater;
+# CI runs with --publish never and uploads the release itself.
+publish:
+  provider: github
+  owner: Jelatine
+  repo: vernier
+  releaseType: release
 mac:
   target: [dmg, zip]
   category: public.app-category.developer-tools
+  icon: build/icon.icns
   artifactName: ${productName}-${version}-mac-${arch}.${ext}
+dmg:
+  title: ${productName} ${version}
 win:
   target: [nsis]
+  icon: build/icon.ico
   artifactName: ${productName}-${version}-win-${arch}-setup.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  createDesktopShortcut: true
+  shortcutName: Vernier
 linux:
   target: [AppImage]
   category: Science
+  icon: build/icons
+  synopsis: Spreadsheet preview with MATLAB-style interactive plotting
   artifactName: ${productName}-${version}-linux-${arch}.${ext}
 fileAssociations:
   - ext: [csv, tsv, xlsx, xls]

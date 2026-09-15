@@ -1,10 +1,21 @@
 {
   "name": "vernier",
   "productName": "Vernier",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Spreadsheet preview + MATLAB-style interactive plotting on a columnar data core",
   "main": "./out/main/index.js",
-  "author": "Vernier",
+  "author": {
+    "name": "Jelatine",
+    "url": "https://github.com/Jelatine"
+  },
+  "homepage": "https://github.com/Jelatine/vernier",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jelatine/vernier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Jelatine/vernier/issues"
+  },
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -16,12 +27,18 @@
     "test": "vitest run",
     "e2e": "npm run build && playwright test",
     "gen:sample": "node scripts/gen-sample.mjs",
-    "dist": "npm run build && electron-builder",
-    "dist:dir": "npm run build && electron-builder --dir"
+    "dist": "npm run build && node scripts/dist.mjs --publish never",
+    "dist:dir": "npm run build && node scripts/dist.mjs --dir --publish never",
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "app:version": "node scripts/version.mjs"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@duckdb/duckdb-wasm": "^1.33.1-dev57.0",
     "@playwright/test": "1.63",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^24.13.4",
     "ag-grid-community": "^36.1.0",
     "apache-arrow": "^17.0.0",

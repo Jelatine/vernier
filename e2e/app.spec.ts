@@ -1,6 +1,9 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { resolveVersion } from '../scripts/version.mjs'
 
 const SHOTS = process.env['SHOT_DIR'] ?? 'test-results/shots'
 mkdirSync(SHOTS, { recursive: true })
@@ -56,7 +59,23 @@ async function openFile(path: string, timeout = 60_000): Promise<void> {
 }
 
 test.beforeAll(async () => {
-  app = await electron.launch({ args: [resolve('out/main/index.js')] })
+  // Fresh profile (so the default theme is observable) and a local update feed announcing v99.
+  const profile = mkdtempSync(join(tmpdir(), 'vernier-e2e-'))
+  const feed = join(profile, 'latest-release.json')
+  writeFileSync(
+    feed,
+    JSON.stringify({
+      tag_name: 'v99.0.0',
+      html_url: 'https://github.com/Jelatine/vernier/releases/tag/v99.0.0',
+      body: '- e2e 模拟的发布说明',
+      published_at: '2026-09-15T00:00:00Z',
+      assets: [{ name: 'Vernier-99.0.0-mac-arm64.dmg', browser_download_url: 'https://example.invalid/Vernier-99.0.0-mac-arm64.dmg' }]
+    })
+  )
+  app = await electron.launch({
+    args: [resolve('out/main/index.js')],
+    env: { ...process.env, VERNIER_USER_DATA: profile, VERNIER_UPDATE_URL: pathToFileURL(feed).toString() }
+  })
   page = await app.firstWindow()
   page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`))
   page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`))
@@ -79,6 +98,59 @@ test('security posture of the window', async () => {
   expect(prefs).toMatchObject({ contextIsolation: true, nodeIntegration: false, sandbox: true })
   expect(prefs.url.startsWith('app://vernier/')).toBe(true)
   expect(await page.evaluate(() => typeof (window as any).require)).toBe('undefined')
+})
+
+test('title bar, theme switching, about and update check', async () => {
+  const version = resolveVersion()
+  await expect(page.locator('.topbar')).toHaveCount(0)
+  const bar = (await page.locator('#titlebar').boundingBox())!
+  expect(bar.y).toBe(0)
+  expect(bar.height).toBe(40)
+  await expect(page.locator('#titlebar .tb-logo')).toBeVisible()
+  expect(await page.evaluate(() => (document.querySelector('.tb-logo') as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+  if (process.platform === 'darwin') {
+    const brand = (await page.locator('.tb-brand').boundingBox())!
+    expect(brand.x).toBeGreaterThanOrEqual(76) // clear of the traffic lights
+  }
+
+  // Default theme is light, for page and native chrome alike.
+  const themeState = () => page.evaluate(() => [document.documentElement.dataset['theme'], document.documentElement.dataset['themeMode']])
+  expect(await themeState()).toEqual(['light', 'light'])
+  expect(await app.evaluate(({ nativeTheme }) => nativeTheme.themeSource)).toBe('light')
+
+  await page.locator('#btn-theme').click()
+  await expect(page.locator('#theme-menu')).toBeVisible()
+  await page.locator('[data-theme-choice="dark"]').click()
+  await expect.poll(themeState).toEqual(['dark', 'dark'])
+  await expect(page.locator('#theme-menu')).toBeHidden()
+  expect(await app.evaluate(({ nativeTheme }) => nativeTheme.themeSource)).toBe('dark')
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(13, 13, 13)')
+  await page.screenshot({ path: join(SHOTS, '00-dark-empty.png') })
+  await page.locator('#btn-theme').click()
+  await page.locator('[data-theme-choice="light"]').click()
+  await expect.poll(themeState).toEqual(['light', 'light'])
+  expect(await page.evaluate(() => localStorage.getItem('vernier.theme'))).toBe('light')
+
+  // Version from git tags in the status bar; update feed announces a newer release.
+  await expect(page.locator('#sb-version')).toHaveText(`v${version}`)
+  await expect(page.locator('#btn-update')).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('#btn-update')).toContainText('99.0.0')
+
+  await page.locator('#btn-about').click()
+  const about = page.locator('#about')
+  await expect(about).toBeVisible()
+  await expect(about.locator('#about-version')).toHaveText(version)
+  await expect(about.locator('#about-author')).toHaveText('Jelatine')
+  await expect(about.locator('#about-author')).toHaveAttribute('href', 'https://github.com/Jelatine')
+  await expect(about.locator('#about-repo')).toHaveAttribute('href', 'https://github.com/Jelatine/vernier')
+  await expect(about.locator('#about-runtime')).toContainText('Electron')
+  await expect(about.locator('#update-text')).toContainText('v99.0.0')
+  // Unpackaged build can't self-install: the action is a download link.
+  await expect(about.locator('#update-action')).toHaveText('前往下载')
+  await expect(about.locator('#update-notes')).toBeVisible()
+  await page.screenshot({ path: join(SHOTS, '00-about.png') })
+  await page.keyboard.press('Escape')
+  await expect(about).toBeHidden()
 })
 
 test('CSV → table preview → default plot', async () => {
@@ -329,6 +401,19 @@ test('XLSX: sheets, types, unsorted X → scatter/polyline with 2-D snapping', a
   await page.locator('#sheet-select').selectOption('Sheet2')
   d = await waitPlot((d) => d.meta?.sheet === 'Sheet2' && d.meta.rowCount === 2)
   expect(d.meta!.columns.map((c) => c.name)).toEqual(['k', 'v'])
+})
+
+test('dark theme with data re-renders grid and plot', async () => {
+  await page.locator('#btn-theme').click()
+  await page.locator('[data-theme-choice="dark"]').click()
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset['theme'])).toBe('dark')
+  const d = await waitPlot((d) => d.plots[0]?.stats?.phase === 'full')
+  expect(d.plots.length).toBeGreaterThan(0)
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: join(SHOTS, '08-dark-with-data.png') })
+  await page.locator('#btn-theme').click()
+  await page.locator('[data-theme-choice="light"]').click()
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset['theme'])).toBe('light')
 })
 
 test('no renderer errors', async () => {

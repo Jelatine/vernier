@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4196f5"/>
+      <stop offset="1" stop-color="#1a4ca8"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="14.0" stdDeviation="16.0" flood-color="#0b1a3a" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185.0" fill="url(#plate)"/>
+  </g>
+  <rect x="100" y="100" width="824" height="824" rx="185.0" fill="url(#gloss)"/>
+  <g stroke="#ffffff" stroke-opacity="0.5" stroke-width="12.0" stroke-linecap="round">
+    <line x1="218.0" y1="816.0" x2="806.0" y2="816.0"/>
+    <line x1="218.0" y1="746.0" x2="218.0" y2="816.0"/>
+    <line x1="276.8" y1="776.0" x2="276.8" y2="816.0"/>
+    <line x1="335.6" y1="776.0" x2="335.6" y2="816.0"/>
+    <line x1="394.4" y1="776.0" x2="394.4" y2="816.0"/>
+    <line x1="453.2" y1="776.0" x2="453.2" y2="816.0"/>
+    <line x1="512.0" y1="746.0" x2="512.0" y2="816.0"/>
+    <line x1="570.8" y1="776.0" x2="570.8" y2="816.0"/>
+    <line x1="688.4" y1="776.0" x2="688.4" y2="816.0"/>
+    <line x1="747.2" y1="776.0" x2="747.2" y2="816.0"/>
+    <line x1="806.0" y1="746.0" x2="806.0" y2="816.0"/>
+  </g>
+  <line x1="629.6" y1="336.0" x2="629.6" y2="816.0" stroke="#ffffff" stroke-opacity="0.75" stroke-width="12.0" stroke-linecap="round" stroke-dasharray="2.0 26.0"/>
+  <line x1="629.6" y1="734.0" x2="629.6" y2="816.0" stroke="#eb6834" stroke-width="16.0" stroke-linecap="round"/>
+  <path d="M 218.0 648.0 L 356.0 472.0 L 482.0 558.0 L 629.6 336.0 L 806.0 452.0" fill="none" stroke="#ffffff" stroke-width="54.0" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="629.6" cy="336.0" r="60.0" fill="#eb6834" stroke="#ffffff" stroke-width="22.0"/>
+</svg>

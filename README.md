@@ -17,15 +17,39 @@ npm run dist:dir          # electron-builder 打包 (当前平台, 未压缩目�
 
 ## 发布
 
-推送 `v*` tag 触发 `.github/workflows/release.yml`：校验（tag 与 `package.json` 版本一致、类型检查、单元测试）→
-macOS（x64 + arm64 的 dmg/zip）、Windows（x64 NSIS 安装包）、Linux（x64 AppImage）并行打包 → 创建 GitHub Release 并附带 SHA256SUMS。
+**版本号来自 git tag**，`package.json` 里的 `0.0.0` 只是占位。`scripts/version.mjs` 规则：
+
+| 情况 | 版本号 |
+|---|---|
+| CI 中由 tag `v1.2.3` 触发（`APP_VERSION`） | `1.2.3` |
+| HEAD 恰好在 tag `v1.2.3` 上 | `1.2.3` |
+| tag 之后又有 3 个提交 | `1.2.4-dev.3+g<sha>` |
+
+构建时注入主进程、preload 与渲染进程（`__APP_VERSION__`），打包时写入安装包元数据（`-c.extraMetadata.version`）。
+
+推送 `v*` tag 触发 `.github/workflows/release.yml`：校验（tag 格式、类型检查、单元测试）→
+macOS（x64 + arm64 的 dmg/zip）、Windows（x64 NSIS 安装包）、Linux（x64 AppImage）并行打包 →
+创建 GitHub Release，附带 SHA256SUMS 以及应用内升级所需的 `latest*.yml` / blockmap。
 
 ```bash
-npm version patch          # 修改版本并打 tag
-git push --follow-tags
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
 构建未签名：macOS 首次打开需右键「打开」，Windows 可能出现 SmartScreen 提示。
+
+## 版本检测与升级
+
+- 启动后自动检查 GitHub 最新 Release（可在「关于」中关闭），有新版本时标题栏出现提示
+- **Windows（NSIS）/ Linux（AppImage）**：应用内下载（electron-updater，显示进度）→「重启并安装」
+- **macOS**：未签名的应用无法原地替换，升级按钮直接打开对应架构的 `.dmg` 下载
+- macOS 应用菜单「检查更新…」，或点击状态栏右下角版本号打开「关于」
+
+## 界面
+
+- 自绘标题栏：logo、打开文件、数据集 / 工作表切换、当前文件名、更新提示、外观切换、关于；macOS 保留红绿灯，Windows / Linux 保留原生窗口按钮（随主题变色）
+- 外观：浅色（默认）/ 深色 / 跟随系统，同步到原生主题
+- 关于：版本、作者 [Jelatine](https://github.com/Jelatine)、仓库地址、运行环境
+- logo 源在 `scripts/gen-icons.mjs`，`npm run gen:icons` 生成 icns / ico（含安装包图标）/ Linux png / 界面 SVG
 
 ## 三层架构
 

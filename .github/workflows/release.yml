@@ -12,24 +12,30 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # The git tag is the version: v1.2.3 -> 1.2.3. Manual runs derive it from `git describe`.
+  APP_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Tag matches package.json version
+      - name: Tag is a semantic version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          pkg="v$(node -p "require('./package.json').version")"
-          if [ "$pkg" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $pkg"
+          if ! echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::tag $GITHUB_REF_NAME is not vMAJOR.MINOR.PATCH[-prerelease]"
             exit 1
           fi
+      - run: echo "Building version $(node scripts/version.mjs)"
       - run: npm run typecheck
       - run: npm test
 
@@ -48,6 +54,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -55,7 +63,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Package
-        run: npx electron-builder ${{ matrix.args }} --publish never
+        run: node scripts/dist.mjs ${{ matrix.args }} --publish never
         env:
           # Unsigned builds: don't go looking for a signing identity in the keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -63,11 +71,14 @@ jobs:
         with:
           name: vernier-${{ runner.os }}
           if-no-files-found: error
+          # latest*.yml + blockmaps are what electron-updater reads for in-app upgrades.
           path: |
             dist/*.dmg
             dist/*.zip
             dist/*.exe
             dist/*.AppImage
+            dist/*.blockmap
+            dist/latest*.yml
 
   release:
     needs: build
@@ -84,8 +95,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -la artifacts
-          (cd artifacts && sha256sum * > SHA256SUMS.txt)
+          (cd artifacts && sha256sum *.dmg *.zip *.exe *.AppImage > SHA256SUMS.txt)
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" artifacts/* \
             --title "Vernier $GITHUB_REF_NAME" \
             --generate-notes \
-            --verify-tag
+            --verify-tag $prerelease
