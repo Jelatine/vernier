@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vernier</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand" aria-label="Vernier">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <path d="M2 15 L6 9 L9 11 L16 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="9" cy="11" r="2.2" fill="var(--accent)" />
+          </svg>
+          Vernier
+        </div>
+        <button id="btn-open" class="btn primary" title="打开 CSV / XLSX / Parquet（⌘O）">打开文件…</button>
+        <select id="dataset-select" class="select" title="数据集" hidden></select>
+        <select id="sheet-select" class="select" title="工作表" hidden></select>
+        <div id="dataset-meta" class="meta"></div>
+        <div class="spacer"></div>
+        <div id="status" class="status" role="status"></div>
+      </header>
+
+      <div class="body">
+        <aside class="sidebar">
+          <section class="side-section columns-section">
+            <div class="side-head">
+              <h2>列</h2>
+              <span class="hint">X 单选（空 = 行号）· Y 多选</span>
+            </div>
+            <input id="col-filter" class="input" type="search" placeholder="筛选列名…" spellcheck="false" />
+            <div id="col-list" class="col-list" role="list"></div>
+          </section>
+          <section class="side-section sql-section">
+            <div class="side-head">
+              <h2>SQL</h2>
+              <span class="hint">DuckDB · 结果作为新数据集</span>
+            </div>
+            <textarea id="sql-input" class="input sql-input" spellcheck="false" rows="5"></textarea>
+            <div class="sql-row">
+              <button id="btn-sql" class="btn">运行 <kbd>⌘↵</kbd></button>
+              <span id="sql-msg" class="sql-msg"></span>
+            </div>
+          </section>
+        </aside>
+
+        <main class="workspace">
+          <section class="panel grid-panel" id="grid-panel">
+            <div id="grid" class="grid"></div>
+            <div id="empty" class="empty">
+              <div class="empty-card">
+                <div class="empty-title">拖入 CSV / XLSX / Parquet 文件</div>
+                <div class="empty-sub">或按 <kbd>⌘O</kbd> 打开。数据进入列式引擎（DuckDB-WASM），表格只按可见行区间取数。</div>
+                <button id="btn-open-empty" class="btn primary">打开文件…</button>
+              </div>
+            </div>
+          </section>
+
+          <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal" title="拖动调整"></div>
+
+          <section class="panel plot-panel">
+            <div class="plot-toolbar" role="toolbar">
+              <div class="seg" role="group" aria-label="工具">
+                <button class="seg-btn" data-tool="explore" title="浏览：拖动平移，单击放置数据游标（E）">浏览</button>
+                <button class="seg-btn" data-tool="zoom" title="框选缩放：拖框放大，单击放大，⌥单击缩小（Z）">框选缩放</button>
+              </div>
+              <button class="btn" id="btn-reset" title="复位坐标轴（R / 双击）">复位</button>
+              <button class="btn" id="btn-fity" title="按当前 X 范围自适应 Y（F）">Y 自适应</button>
+              <span class="tb-sep"></span>
+              <div class="seg" role="group" aria-label="线型">
+                <button class="seg-btn" data-mode="line" title="折线">线</button>
+                <button class="seg-btn" data-mode="scatter" title="散点">点</button>
+              </div>
+              <div class="seg" role="group" aria-label="布局">
+                <button class="seg-btn" data-layout="overlay" title="所有 Y 共用一个坐标区">叠加</button>
+                <button class="seg-btn" data-layout="stack" title="每个 Y 一个坐标区，X 轴联动">分图</button>
+              </div>
+              <span class="tb-sep"></span>
+              <button class="btn" id="btn-clear-tips" title="清除所有数据游标">清除游标</button>
+              <button class="btn" id="btn-export" title="导出 PNG（⇧⌘E）">导出 PNG</button>
+              <div class="spacer"></div>
+              <div id="plot-stats" class="plot-stats"></div>
+            </div>
+            <div id="plots" class="plots">
+              <div id="plot-empty" class="plot-empty">在左侧选择 Y 列（或 ⌥ 单击 / 单击表头）开始绘图</div>
+            </div>
+            <div id="tips-panel" class="tips-panel" hidden></div>
+          </section>
+        </main>
+      </div>
+
+      <div id="dropzone" class="dropzone" hidden><div>松开以导入</div></div>
+      <input type="file" id="file-input" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.parquet" hidden />
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

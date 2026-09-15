@@ -1,0 +1,37 @@
+{
+  "name": "vernier",
+  "productName": "Vernier",
+  "version": "0.1.0",
+  "description": "Spreadsheet preview + MATLAB-style interactive plotting on a columnar data core",
+  "main": "./out/main/index.js",
+  "author": "Vernier",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "e2e": "npm run build && playwright test",
+    "gen:sample": "node scripts/gen-sample.mjs",
+    "dist": "npm run build && electron-builder",
+    "dist:dir": "npm run build && electron-builder --dir"
+  },
+  "devDependencies": {
+    "@duckdb/duckdb-wasm": "^1.33.1-dev57.0",
+    "@playwright/test": "1.63",
+    "@types/node": "^24.13.4",
+    "ag-grid-community": "^36.1.0",
+    "apache-arrow": "^17.0.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "5.9",
+    "uplot": "^1.6.32",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  }
+}
